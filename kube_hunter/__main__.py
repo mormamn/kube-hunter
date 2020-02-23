@@ -7,6 +7,7 @@ from kube_hunter.modules.report import get_reporter, get_dispatcher
 from kube_hunter.core.events import handler
 from kube_hunter.core.events.types import HuntFinished, HuntStarted
 from kube_hunter.modules.discovery.hosts import RunningAsPodEvent, HostScanEvent
+from kube_hunter.core.events.types import Event, ReportDispatched
 
 
 config = Config.get_conf()
@@ -48,6 +49,32 @@ def list_hunters():
         for hunter, docs in handler.active_hunters.items():
             name, doc = hunter.parse_docs(docs)
             print("* {}\n  {}\n".format( name, doc))
+
+
+class TablesPrinted(Event):
+    pass
+
+
+@handler.subscribe(HuntFinished)
+class SendFullReport(object):
+    def __init__(self, event):
+        self.event = event
+
+    def execute(self):
+        report = reporter.get_report()
+        dispatcher.dispatch(report=report, reporter_name=config.report)
+        handler.publish_event(ReportDispatched())
+        handler.publish_event(TablesPrinted())
+
+
+@handler.subscribe(HuntStarted)
+class StartedInfo(object):
+    def __init__(self, event):
+        self.event = event
+
+    def execute(self):
+        logging.info("~ Started")
+        logging.info("~ Discovering Open Kubernetes Services...")
 
 
 global hunt_started_lock

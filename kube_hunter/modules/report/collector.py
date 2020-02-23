@@ -1,7 +1,7 @@
 import logging
 
 from kube_hunter.core.events import handler
-from kube_hunter.core.events.types import Event, Service, Vulnerability, HuntFinished, HuntStarted, ReportDispatched
+from kube_hunter.core.events.types import Service, Vulnerability
 
 services = list()
 vulnerabilities = list()
@@ -57,29 +57,3 @@ class Collector(object):
                     location=self.event.location(),
                     desc=wrap_last_line(console_trim(self.event.explain(), '|     '))
                 ))
-
-
-class TablesPrinted(Event):
-    pass
-
-
-@handler.subscribe(HuntFinished)
-class SendFullReport(object):
-    def __init__(self, event):
-        self.event = event
-
-    def execute(self):
-        report = config.reporter.get_report()
-        config.dispatcher.dispatch(report)
-        handler.publish_event(ReportDispatched())
-        handler.publish_event(TablesPrinted())
-
-
-@handler.subscribe(HuntStarted)
-class StartedInfo(object):
-    def __init__(self, event):
-        self.event = event
-
-    def execute(self):
-        logging.info("~ Started")
-        logging.info("~ Discovering Open Kubernetes Services...")

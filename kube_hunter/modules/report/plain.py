@@ -21,7 +21,7 @@ class PlainReporter(BaseReporter):
         hunters_len = len(hunters.items())
 
         services_len = len(services)
-
+        #TODO: remove config
         if services_len:
             output += self.nodes_table()
             if not config.mapping:
