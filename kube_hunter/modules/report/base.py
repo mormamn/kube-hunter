@@ -12,7 +12,7 @@ class MetaReporter(object):
 class BaseReporter(object):
     __metaclass__ = MetaReporter
 
-    def get_nodes(self):
+    def get_nodes(self, services=None):
         nodes = list()
         node_locations = set()
         for service in services:
@@ -49,14 +49,14 @@ class BaseReporter(object):
                 hunters_data.append({"name": name, "description": doc, "vulnerabilities": hunter.publishedVulnerabilities})
         return hunters_data
 
-    def get_report(self):
+    def get_report(self, *, statistics=None, services=None, **kwargs):
         report = {
-            "nodes": self.get_nodes(),
+            "nodes": self.get_nodes(services=services),
             "services": self.get_services(),
             "vulnerabilities": self.get_vulnerabilities()
         }
 
-        if config.statistics:
+        if statistics:
             report["hunter_statistics"] = self.get_hunter_statistics()
 
         report["kburl"] = "https://aquasecurity.github.io/kube-hunter/kb/{vid}"

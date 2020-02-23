@@ -23,5 +23,5 @@ class Config(metaclass=Singleton):
         return config
 
     def __init_conf(self, config):
-        for attr in config:
-            setattr(self, attr, config[attr])
+        for attr,val in vars(config).items():
+            setattr(self, attr, val)

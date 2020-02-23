@@ -6,6 +6,9 @@ from threading import Thread
 
 from kube_hunter.core.types import ActiveHunter, HunterBase
 from kube_hunter.core.events.types import Vulnerability, EventFilterBase
+from kube_hunter.conf import Config
+
+config = Config()
 
 
 # Inherits Queue object, handles events asynchronously
@@ -112,8 +115,7 @@ class EventQueue(Queue, object):
                     for hook, predicate in self.hooks[hooked_event]:
                         if predicate and not predicate(event):
                             continue
-                        #TODO: remove config
-                        if config.statistics and caller:
+                        if getattr(config, "statistics") and caller:
                             if Vulnerability in event.__class__.__mro__:
                                 caller.__class__.publishedVulnerabilities += 1
 

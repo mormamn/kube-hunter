@@ -12,7 +12,7 @@ KB_LINK = "https://github.com/aquasecurity/kube-hunter/tree/master/docs/_kb"
 
 class PlainReporter(BaseReporter):
 
-    def get_report(self):
+    def get_report(self, *, mapping=None, statistics=None, **kwargs):
         """generates report tables"""
         output = ""
 
@@ -21,16 +21,15 @@ class PlainReporter(BaseReporter):
         hunters_len = len(hunters.items())
 
         services_len = len(services)
-        #TODO: remove config
         if services_len:
             output += self.nodes_table()
-            if not config.mapping:
+            if not mapping:
                 output += self.services_table()
                 if vulnerabilities_len:
                     output += self.vulns_table()
                 else:
                     output += "\nNo vulnerabilities were found"
-                if config.statistics:
+                if statistics:
                     if hunters_len:
                         output += self.hunters_table()
                     else:

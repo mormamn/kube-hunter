@@ -5,8 +5,8 @@ from kube_hunter.modules.report.base import BaseReporter
 
 
 class YAMLReporter(BaseReporter):
-    def get_report(self):
-        report = super().get_report()
+    def get_report(self, *args, **kwargs):
+        report = super().get_report(*args, **kwargs)
         output = StringIO()
         yaml = YAML()
         yaml.dump(report, output)

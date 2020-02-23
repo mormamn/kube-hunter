@@ -10,7 +10,7 @@ from kube_hunter.modules.discovery.hosts import RunningAsPodEvent, HostScanEvent
 from kube_hunter.core.events.types import Event, ReportDispatched
 
 
-config = Config.get_conf()
+config = Config().get_conf()
 reporter = get_reporter(config.report)
 dispatcher = get_dispatcher(config.dispatch)
 
@@ -61,7 +61,7 @@ class SendFullReport(object):
         self.event = event
 
     def execute(self):
-        report = reporter.get_report()
+        report = reporter.get_report(mapping=config.mapping, statistics=config.statistics)
         dispatcher.dispatch(report=report, reporter_name=config.report)
         handler.publish_event(ReportDispatched())
         handler.publish_event(TablesPrinted())
@@ -126,4 +126,4 @@ def main():
 
 
 if __name__ == '__main__':
-        main()
+    main()
