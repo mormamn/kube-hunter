@@ -16,8 +16,8 @@ def test_FromPodHostDiscovery():
         e = RunningAsPodEvent()
 
         setattr(config, "azure", False)
-        setattr(config, "remote", False)
-        setattr(config, "cidr", False)
+        setattr(config, "remote", None)
+        setattr(config, "cidr", None)
         m.get("http://169.254.169.254/metadata/instance?api-version=2017-08-01", status_code=404)
         f = FromPodHostDiscovery(e)
         assert not f.is_azure_pod()
@@ -25,19 +25,19 @@ def test_FromPodHostDiscovery():
         # f.execute()
 
         # Test that we generate NewHostEvent for the addresses reported by the Azure Metadata API
-        config.azure = True
+        setattr(config, "azure", True)
         m.get("http://169.254.169.254/metadata/instance?api-version=2017-08-01", \
-            text='{"network":{"interface":[{"ipv4":{"subnet":[{"address": "3.4.5.6", "prefix": "255.255.255.252"}]}}]}}')
+              text='{"network":{"interface":[{"ipv4":{"subnet":[{"address": "3.4.5.6", "prefix": "255.255.255.252"}]}}]}}')
         assert f.is_azure_pod()
         f.execute()
 
         # Test that we don't trigger a HostScanEvent unless either config.remote or config.cidr are configured
-        config.remote = "1.2.3.4"
+        setattr(config, "remote", "1.2.3.4")
         f.execute()
 
-        config.azure = False
-        config.remote = None 
-        config.cidr = "1.2.3.4/24"
+        setattr(config, "azure", False)
+        setattr(config, "remote", None)
+        setattr(config, "cidr", "1.2.3.4/24")
         f.execute()
 
 
@@ -45,21 +45,21 @@ def test_FromPodHostDiscovery():
 @handler.subscribe(HostScanEvent)
 class testHostDiscovery(object):
     def __init__(self, event):
-        assert config.remote is not None or config.cidr is not None
-        assert config.remote == "1.2.3.4" or config.cidr == "1.2.3.4/24"
+        assert getattr(config, "remote") is not None or getattr(config, "cidr") is not None
+        assert getattr(config, "remote") == "1.2.3.4" or getattr(config, "cidr") == "1.2.3.4/24"
         
 # In this set of tests we should only get as far as finding a host if it's Azure
 # because we're not running the code that would normally be triggered by a HostScanEvent
 @handler.subscribe(NewHostEvent)
 class testHostDiscoveryEvent(object):
     def __init__(self, event):
-        assert config.azure
+        assert getattr(config, "azure")
         assert str(event.host).startswith("3.4.5.")
-        assert config.remote is None 
-        assert config.cidr is None
+        assert getattr(config, "remote") is None
+        assert getattr(config, "cidr") is None
 
 # Test that we only report this event for Azure hosts
 @handler.subscribe(AzureMetadataApi)
 class testAzureMetadataApi(object):
     def __init__(self, event):
-        assert config.azure
+        assert getattr(config, azure)
