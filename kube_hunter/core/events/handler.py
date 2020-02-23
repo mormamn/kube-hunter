@@ -4,11 +4,9 @@ from collections import defaultdict
 from queue import Queue
 from threading import Thread
 
-from kube_hunter.conf import config
+from kube_hunter.core.types import ActiveHunter, HunterBase
+from kube_hunter.core.events.types import Vulnerability, EventFilterBase
 
-from ..types import ActiveHunter, HunterBase
-
-from ...core.events.types import Vulnerability, EventFilterBase
 
 # Inherits Queue object, handles events asynchronously
 class EventQueue(Queue, object):
@@ -42,7 +40,7 @@ class EventQueue(Queue, object):
         return wrapper
 
     # wrapper takes care of the subscribe once mechanism
-    def subscribe_once(self, event, hook=None, predicate=None):
+    def subscribe_once(self, event, hook=None, predicate=None, active=None):
         def wrapper(hook):
             # installing a __new__ magic method on the hunter
             # which will remove the hunter from the list upon creation
@@ -51,14 +49,14 @@ class EventQueue(Queue, object):
                 return object.__new__(self)
             hook.__new__ = __new__unsubscribe_self
 
-            self.subscribe_event(event, hook=hook, predicate=predicate)
+            self.subscribe_event(event, hook=hook, predicate=predicate, active=active)
             return hook
         return wrapper
 
     # getting uninstantiated event object
-    def subscribe_event(self, event, hook=None, predicate=None):
+    def subscribe_event(self, event, hook=None, predicate=None, active=None):
         if ActiveHunter in hook.__mro__:
-            if not config.active:
+            if not active:
                 return
             self.active_hunters[hook] = hook.__doc__
         elif HunterBase in hook.__mro__:
@@ -77,7 +75,6 @@ class EventQueue(Queue, object):
         elif hook not in self.hooks[event]:
             self.hooks[event].append((hook, predicate))
             logging.debug('{} subscribed to {}'.format(hook, event))
-
 
     def apply_filters(self, event):
         # if filters are subscribed, apply them on the event 
@@ -115,7 +112,7 @@ class EventQueue(Queue, object):
                     for hook, predicate in self.hooks[hooked_event]:
                         if predicate and not predicate(event):
                             continue
-
+                        #TODO: remove config
                         if config.statistics and caller:
                             if Vulnerability in event.__class__.__mro__:
                                 caller.__class__.publishedVulnerabilities += 1
@@ -150,5 +147,6 @@ class EventQueue(Queue, object):
         self.running = False
         with self.mutex:
             self.queue.clear()
+
 
 handler = EventQueue(800)

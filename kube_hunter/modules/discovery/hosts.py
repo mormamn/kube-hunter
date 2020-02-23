@@ -10,10 +10,13 @@ from enum import Enum
 from netaddr import IPNetwork, IPAddress
 from netifaces import AF_INET, ifaddresses, interfaces
 
-from kube_hunter.conf import config
+from kube_hunter.conf import Config
 from kube_hunter.core.events import handler
 from kube_hunter.core.events.types import Event, NewHostEvent, Vulnerability
 from kube_hunter.core.types import Discovery, InformationDisclosure, Azure
+
+config = Config()
+
 
 class RunningAsPodEvent(Event):
     def __init__(self):
@@ -38,6 +41,7 @@ class RunningAsPodEvent(Event):
         except IOError:
             pass
 
+
 class AzureMetadataApi(Vulnerability, Event):
     """Access to the Azure Metadata API exposes information about the machines associated with the cluster"""
     def __init__(self, cidr):
@@ -45,10 +49,12 @@ class AzureMetadataApi(Vulnerability, Event):
         self.cidr = cidr
         self.evidence = "cidr: {}".format(cidr)
 
+
 class HostScanEvent(Event):
     def __init__(self, pod=False, active=False, predefined_hosts=list()):
         self.active = active # flag to specify whether to get actual data from vulnerabilities
         self.predefined_hosts = predefined_hosts
+
 
 class HostDiscoveryHelpers:
     @staticmethod
@@ -87,7 +93,7 @@ class FromPodHostDiscovery(Discovery):
 
     def execute(self):
         # Scan any hosts that the user specified
-        if config.remote or config.cidr:
+        if getattr(config, "remote") or getattr(config, "cidr"):
             self.publish_event(HostScanEvent())
         else:
             # Discover cluster subnets, we'll scan all these hosts
@@ -132,12 +138,13 @@ class FromPodHostDiscovery(Discovery):
         subnets = list()
         for interface in machine_metadata["network"]["interface"]:
             address, subnet = interface["ipv4"]["subnet"][0]["address"], interface["ipv4"]["subnet"][0]["prefix"]
-            logging.debug("From pod discovered subnet {0}/{1}".format(address, subnet if not config.quick else "24"))
-            subnets.append([address,subnet if not config.quick else "24"])
+            logging.debug("From pod discovered subnet {0}/{1}".format(address, subnet if not getattr(config, "quick") else "24"))
+            subnets.append([address,subnet if not getattr(config, "quick") else "24"])
 
             self.publish_event(AzureMetadataApi(cidr="{}/{}".format(address, subnet)))
 
         return subnets, "Azure"
+
 
 @handler.subscribe(HostScanEvent)
 class HostDiscovery(Discovery):
@@ -148,19 +155,19 @@ class HostDiscovery(Discovery):
         self.event = event
 
     def execute(self):
-        if config.cidr:
+        if getattr(config, "cidr"):
             try:
-                ip, sn = config.cidr.split('/')
+                ip, sn = getattr(config, "cidr").split('/')
             except ValueError as e:
                 logging.exception("unable to parse cidr")
                 return
             cloud = HostDiscoveryHelpers.get_cloud(ip)
             for ip in HostDiscoveryHelpers.generate_subnet(ip, sn=sn):
                 self.publish_event(NewHostEvent(host=ip, cloud=cloud))
-        elif config.interface:
+        elif getattr(config, "interface"):
             self.scan_interfaces()
-        elif len(config.remote) > 0:
-            for host in config.remote:
+        elif len(getattr(config, "remote")) > 0:
+            for host in getattr(config, "remote"):
                 self.publish_event(NewHostEvent(host=host, cloud=HostDiscoveryHelpers.get_cloud(host)))
 
     # for normal scanning
@@ -184,6 +191,7 @@ class HostDiscovery(Discovery):
                     continue
                 for ip in HostDiscoveryHelpers.generate_subnet(ip, sn):
                     yield ip
+
 
 # for comparing prefixes
 class InterfaceTypes(Enum):

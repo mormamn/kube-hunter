@@ -1,46 +1,17 @@
 #!/usr/bin/env python3
-
-import argparse
 import logging
 import threading
 
-from kube_hunter.conf import config
-from kube_hunter.modules.report.plain import PlainReporter
-from kube_hunter.modules.report.yaml import YAMLReporter
-from kube_hunter.modules.report.json import JSONReporter
-from kube_hunter.modules.report.dispatchers import STDOUTDispatcher, HTTPDispatcher
+from kube_hunter.conf import Config
+from kube_hunter.modules.report import get_reporter, get_dispatcher
 from kube_hunter.core.events import handler
 from kube_hunter.core.events.types import HuntFinished, HuntStarted
 from kube_hunter.modules.discovery.hosts import RunningAsPodEvent, HostScanEvent
 
 
-loglevel = getattr(logging, config.log.upper(), logging.INFO)
-
-if config.log.lower() != "none":
-    logging.basicConfig(level=loglevel, format='%(message)s', datefmt='%H:%M:%S')
-
-reporters = {
-    'yaml': YAMLReporter,
-    'json': JSONReporter,
-    'plain': PlainReporter
-}
-
-if config.report.lower() in reporters.keys():
-    config.reporter = reporters[config.report.lower()]()
-else:
-    logging.warning('Unknown reporter selected, using plain')
-    config.reporter = reporters['plain']()
-
-dispatchers = {
-    'stdout': STDOUTDispatcher,
-    'http': HTTPDispatcher
-}
-
-if config.dispatch.lower() in dispatchers.keys():
-    config.dispatcher = dispatchers[config.dispatch.lower()]()
-else:
-    logging.warning('Unknown dispatcher selected, using stdout')
-    config.dispatcher = dispatchers['stdout']()
+config = Config.get_conf()
+reporter = get_reporter(config.report)
+dispatcher = get_dispatcher(config.dispatch)
 
 import kube_hunter
 
@@ -82,6 +53,7 @@ def list_hunters():
 global hunt_started_lock
 hunt_started_lock = threading.Lock()
 hunt_started = False
+
 
 def main():
     global hunt_started

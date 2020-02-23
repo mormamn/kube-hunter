@@ -4,7 +4,7 @@ import requests
 
 from packaging import version
 
-from kube_hunter.conf import config
+from kube_hunter.conf import Config
 from kube_hunter.core.events import handler
 from kube_hunter.core.events.types import Vulnerability, Event, K8sVersionDisclosure
 from kube_hunter.core.types import Hunter, ActiveHunter, KubernetesCluster, \
@@ -12,6 +12,7 @@ from kube_hunter.core.types import Hunter, ActiveHunter, KubernetesCluster, \
     DenialOfService, KubectlClient
 from kube_hunter.modules.discovery.kubectl import KubectlClientEvent
 
+config = Config()
 
 """ Cluster CVES """
 class ServerApiVersionEndPointAccessPE(Vulnerability, Event):
@@ -155,7 +156,7 @@ class K8sClusterCveHunter(Hunter):
             ServerApiClusterScopedResourcesAccess: ["1.13.9", "1.14.5", "1.15.2"]
         }
         for vulnerability, fix_versions in cve_mapping.items():
-            if CveUtils.is_vulnerable(fix_versions, self.event.version, not config.include_patched_versions):
+            if CveUtils.is_vulnerable(fix_versions, self.event.version, not getattr(config, "include_patched_versions")):
                 self.publish_event(vulnerability(self.event.version))
 
 
@@ -174,5 +175,5 @@ class KubectlCVEHunter(Hunter):
         }
         logging.debug('Kubectl Cve Hunter determining vulnerable version: {}'.format(self.event.version))
         for vulnerability, fix_versions in cve_mapping.items():
-            if CveUtils.is_vulnerable(fix_versions, self.event.version, not config.include_patched_versions):
+            if CveUtils.is_vulnerable(fix_versions, self.event.version, not getattr(config, "include_patched_versions")):
                 self.publish_event(vulnerability(binary_version=self.event.version))

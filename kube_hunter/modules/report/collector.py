@@ -1,17 +1,9 @@
 import logging
-import threading
 
-from kube_hunter.conf import config
 from kube_hunter.core.events import handler
 from kube_hunter.core.events.types import Event, Service, Vulnerability, HuntFinished, HuntStarted, ReportDispatched
 
-
-global services_lock
-services_lock = threading.Lock()
 services = list()
-
-global vulnerabilities_lock
-vulnerabilities_lock = threading.Lock()
 vulnerabilities = list()
 
 hunters = handler.all_hunters
@@ -50,8 +42,7 @@ class Collector(object):
         global vulnerabilities
         bases = self.event.__class__.__mro__
         if Service in bases:
-            with services_lock:
-                services.append(self.event)
+            services.append(self.event)
             import datetime
             logging.info("|\n| {name}:\n|   type: open service\n|   service: {name}\n|_  location: {location}".format(
                 name=self.event.get_name(),
@@ -59,8 +50,7 @@ class Collector(object):
                 time=datetime.time()
             ))
         elif Vulnerability in bases:
-            with vulnerabilities_lock:
-                vulnerabilities.append(self.event)
+            vulnerabilities.append(self.event)
             logging.info(
                 "|\n| {name}:\n|   type: vulnerability\n|   location: {location}\n|   description: \n{desc}".format(
                     name=self.event.get_name(),

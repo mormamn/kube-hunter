@@ -2,11 +2,9 @@ import logging
 import os
 import requests
 
-from kube_hunter.conf import config
-
 
 class HTTPDispatcher(object):
-    def dispatch(self, report):
+    def dispatch(self, report, *args):
         logging.debug('Dispatching report via http')
         dispatch_method = os.environ.get(
             'KUBEHUNTER_HTTP_DISPATCH_METHOD',
@@ -47,9 +45,10 @@ class HTTPDispatcher(object):
                 url=dispatch_url
             ))
 
+
 class STDOUTDispatcher(object):
-    def dispatch(self, report):
+    def dispatch(self, report, reporter_name):
         logging.debug('Dispatching report via stdout')
-        if config.report == "plain":
+        if reporter_name == "plain":
             logging.info("\n{div}".format(div="-" * 10))
         print(report)

@@ -1,39 +1,44 @@
-from kube_hunter.conf import config
 from kube_hunter.core.types import Discovery
-from kube_hunter.modules.report.collector import services, vulnerabilities, hunters, services_lock, vulnerabilities_lock
+#from kube_hunter.modules.report.collector import services, vulnerabilities, hunters, services_lock, vulnerabilities_lock
+
+reporters = dict()
+
+
+class MetaReporter(object):
+    def __call__(self, *a, **kw):
+        reporters[self.get_name()] = self
 
 
 class BaseReporter(object):
+    __metaclass__ = MetaReporter
+
     def get_nodes(self):
         nodes = list()
         node_locations = set()
-        with services_lock:
-            for service in services:
-                node_location = str(service.host)
-                if node_location not in node_locations:
-                    nodes.append({"type": "Node/Master", "location": str(service.host)})
-                    node_locations.add(node_location)
+        for service in services:
+            node_location = str(service.host)
+            if node_location not in node_locations:
+                nodes.append({"type": "Node/Master", "location": str(service.host)})
+                node_locations.add(node_location)
         return nodes
 
     def get_services(self):
-        with services_lock:
-            services_data = [{"service": service.get_name(),
-                     "location": "{}:{}{}".format(service.host, service.port, service.get_path()),
-                     "description": service.explain()}
-                    for service in services]
+        services_data = [{"service": service.get_name(),
+                 "location": "{}:{}{}".format(service.host, service.port, service.get_path()),
+                 "description": service.explain()}
+                for service in services]
         return services_data
 
     def get_vulnerabilities(self):
-        with vulnerabilities_lock:
-            vulnerabilities_data = [{"location": vuln.location(),
-                     "vid": vuln.get_vid(),
-                     "category": vuln.category.name,
-                     "severity": vuln.get_severity(),
-                     "vulnerability": vuln.get_name(),
-                     "description": vuln.explain(),
-                     "evidence": str(vuln.evidence),
-                     "hunter": vuln.hunter.get_name()}
-                    for vuln in vulnerabilities]
+        vulnerabilities_data = [{"location": vuln.location(),
+                 "vid": vuln.get_vid(),
+                 "category": vuln.category.name,
+                 "severity": vuln.get_severity(),
+                 "vulnerability": vuln.get_name(),
+                 "description": vuln.explain(),
+                 "evidence": str(vuln.evidence),
+                 "hunter": vuln.hunter.get_name()}
+                for vuln in vulnerabilities]
         return vulnerabilities_data
 
     def get_hunter_statistics(self):

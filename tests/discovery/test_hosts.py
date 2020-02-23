@@ -5,16 +5,19 @@ from queue import Empty
 from kube_hunter.modules.discovery.hosts import FromPodHostDiscovery, RunningAsPodEvent, HostScanEvent, AzureMetadataApi
 from kube_hunter.core.events.types import Event, NewHostEvent
 from kube_hunter.core.events import handler
-from kube_hunter.conf import config
+from kube_hunter.conf import Config
+
+config = Config()
+
 
 def test_FromPodHostDiscovery():
 
     with requests_mock.Mocker() as m:
         e = RunningAsPodEvent()
 
-        config.azure = False
-        config.remote = None
-        config.cidr = None
+        setattr(config, "azure", False)
+        setattr(config, "remote", False)
+        setattr(config, "cidr", False)
         m.get("http://169.254.169.254/metadata/instance?api-version=2017-08-01", status_code=404)
         f = FromPodHostDiscovery(e)
         assert not f.is_azure_pod()

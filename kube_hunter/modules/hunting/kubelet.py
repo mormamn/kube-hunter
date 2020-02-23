@@ -6,12 +6,13 @@ import re
 import requests
 import urllib3
 
-from kube_hunter.conf import config
+from kube_hunter.conf import Config
 from kube_hunter.core.events import handler
 from kube_hunter.core.events.types import Vulnerability, Event, K8sVersionDisclosure
 from kube_hunter.core.types import Hunter, ActiveHunter, KubernetesCluster, Kubelet, InformationDisclosure, RemoteCodeExec, AccessRisk
 from kube_hunter.modules.discovery.kubelet import ReadOnlyKubeletEvent, SecureKubeletEvent
 
+config = Config()
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
@@ -295,7 +296,7 @@ class SecureKubeletPortHunter(Hunter):
 
     def test_handlers(self):
         # if kube-hunter runs in a pod, we test with kube-hunter's pod
-        pod = self.kubehunter_pod if config.pod else self.get_random_pod()
+        pod = self.kubehunter_pod if getattr(config, "pod") else self.get_random_pod()
         if pod:
             debug_handlers = self.DebugHandlers(self.path, pod=pod, session=self.session)
             try:
